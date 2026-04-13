@@ -7,6 +7,7 @@ const jwt    = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const pool   = require('../db/pool');
 const { checkAccountLockout, recordFailedLogin, clearFailedLogins } = require('../middleware/security');
+const { resetDemoTenant, DEMO_EMAILS } = require('../middleware/demoGuard');
 
 const ACCESS_EXPIRES  = '7d';
 const REFRESH_EXPIRES_DAYS = 30;
@@ -279,12 +280,22 @@ const refresh = async (req, res) => {
 // ── POST /api/auth/logout ─────────────────────────────────
 const logout = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
-    if (!refreshToken) return res.json({ message: 'Logged out' });
-    const hash = hashToken(refreshToken);
-    const result = await pool.query('SELECT family FROM refresh_tokens WHERE token_hash = $1', [hash]);
-    if (result.rows.length > 0) {
-      await pool.query('UPDATE refresh_tokens SET revoked = TRUE WHERE family = $1', [result.rows[0].family]);
+    const { refreshToken, email } = req.body;
+    let userEmail = email;
+    if (refreshToken) {
+      const hash = hashToken(refreshToken);
+      const result = await pool.query(
+        'SELECT rt.family, u.email FROM refresh_tokens rt JOIN users u ON u.id = rt.user_id WHERE rt.token_hash = $1',
+        [hash]
+      );
+      if (result.rows.length > 0) {
+        await pool.query('UPDATE refresh_tokens SET revoked = TRUE WHERE family = $1', [result.rows[0].family]);
+        userEmail = result.rows[0].email;
+      }
+    }
+    // Reset demo tenant data on logout
+    if (userEmail && DEMO_EMAILS.includes(userEmail)) {
+      resetDemoTenant().catch(err => console.error('Demo reset failed:', err.message));
     }
     res.json({ message: 'Logged out' });
   } catch (err) {

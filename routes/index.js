@@ -9,6 +9,7 @@ const { loginLimiter, apiLimiter } = require('../middleware/rateLimiter');
 const v = require('../middleware/validate');
 const audit = require('../middleware/auditLog');
 const { checkAccountLockout } = require('../middleware/security');
+const { blockDemoWrites } = require('../middleware/demoGuard');
 
 // Controllers
 const authCtrl      = require('../controllers/authController');
