@@ -15,8 +15,7 @@ const pool = new Pool({
   max: parseInt(process.env.DB_POOL_MAX) || 50,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
-  // For Supabase/SSL connections, uncomment:
-  // ssl: { rejectUnauthorized: false }
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 // Test connection on startup
