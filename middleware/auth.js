@@ -6,6 +6,21 @@ const jwt = require('jsonwebtoken');
 const DEMO_TENANT_ID = 'f1000000-0000-0000-0000-000000000001';
 const DEMO_EMAILS = ['admin@brewpos.com', 'manager@brewpos.com', 'cashier@brewpos.com'];
 
+// Routes demo users ARE allowed to use (even POST/PATCH)
+const DEMO_ALLOWED_WRITES = [
+  'POST /api/auth/logout',
+  'POST /api/auth/refresh',
+  'POST /api/sales',
+  'PATCH /api/orders',
+];
+
+function isDemoRoute(method, path) {
+  return DEMO_ALLOWED_WRITES.some(r => {
+    const [m, p] = r.split(' ');
+    return method === m && path.startsWith(p);
+  });
+}
+
 const authenticate = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -18,12 +33,13 @@ const authenticate = (req, res, next) => {
     req.user = decoded;
     req.tenant_id = decoded.tenant_id;
 
-    // Block writes for demo accounts
+    // Block non-allowed writes for demo accounts
     const isDemo = decoded.tenant_id === DEMO_TENANT_ID || DEMO_EMAILS.includes(decoded.email);
     const method = req.method.toUpperCase();
-    if (isDemo && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    if (isDemo && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && !isDemoRoute(method, req.originalUrl)) {
       return res.status(403).json({
-        error: 'Demo accounts are read-only. Sign up with Google to create your own shop!'
+        error: 'This is a demo account. Sign up with Google to create your own shop!',
+        isDemo: true
       });
     }
 
