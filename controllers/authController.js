@@ -339,7 +339,7 @@ const createUser = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
     if (!name || !email || !password || !role) return res.status(400).json({ error: 'All fields required' });
-    if (!['admin', 'manager', 'cashier'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
+    if (!['manager', 'cashier'].includes(role)) return res.status(400).json({ error: 'Staff can only be manager or cashier' });
 
     const hashed = await bcrypt.hash(password, 10);
     const result = await pool.query(
