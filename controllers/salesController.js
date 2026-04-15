@@ -4,12 +4,13 @@
 const pool = require('../db/pool');
 
 const processSale = async (req, res) => {
-  const { items, payment_method, amount_tendered, discount = 0, notes } = req.body;
+  const { items, payment_method, order_type, amount_tendered, discount = 0, notes } = req.body;
 
   if (!items || !items.length) return res.status(400).json({ error: 'No items in cart' });
   if (!['cash', 'card', 'ewallet', 'gcash', 'maya', 'gotyme', 'bank_transfer'].includes(payment_method)) {
     return res.status(400).json({ error: 'Invalid payment method' });
   }
+  const validOrderType = ['dine_in', 'take_out'].includes(order_type) ? order_type : 'dine_in';
 
   const TAX_RATE = parseFloat(process.env.TAX_RATE) || 0;
   const client = await pool.connect();
@@ -47,9 +48,9 @@ const processSale = async (req, res) => {
     const sale_number = `TXN-${today}-${seq}`;
 
     const saleRes = await client.query(
-      `INSERT INTO sales (tenant_id, sale_number, cashier_id, subtotal, discount, tax_amount, total_amount, payment_method, amount_tendered, change_due, notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-      [req.tenant_id, sale_number, req.user.id, subtotal, discountAmt, tax_amount, total_amount, payment_method, payment_method === 'cash' ? amount_tendered : null, change_due, notes || null]
+      `INSERT INTO sales (tenant_id, sale_number, cashier_id, subtotal, discount, tax_amount, total_amount, payment_method, order_type, amount_tendered, change_due, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [req.tenant_id, sale_number, req.user.id, subtotal, discountAmt, tax_amount, total_amount, payment_method, validOrderType, payment_method === 'cash' ? amount_tendered : null, change_due, notes || null]
     );
     const sale = saleRes.rows[0];
 
@@ -89,7 +90,7 @@ const processSale = async (req, res) => {
     const io = req.app.get('io');
     if (io) {
       io.to(req.tenant_id).emit('order:new', {
-        id: sale.id, sale_number, order_status: 'pending', created_at: sale.created_at, notes: notes || null, cashier_name: req.user.name,
+        id: sale.id, sale_number, order_status: 'pending', order_type: validOrderType, created_at: sale.created_at, notes: notes || null, cashier_name: req.user.name,
         items: items.map(item => ({ product_name: productMap[item.product_id].name, quantity: item.quantity })),
       });
     }

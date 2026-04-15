@@ -140,6 +140,8 @@ CREATE TABLE sales (
   amount_tendered DECIMAL(10,2),
   change_due      DECIMAL(10,2) DEFAULT 0,
   notes           TEXT,
+  order_type      VARCHAR(10) DEFAULT 'dine_in'
+                    CHECK (order_type IN ('dine_in', 'take_out')),
   order_status    VARCHAR(20) DEFAULT 'pending'
                     CHECK (order_status IN ('pending', 'preparing', 'ready', 'completed')),
   created_at      TIMESTAMP DEFAULT NOW(),
