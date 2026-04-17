@@ -31,11 +31,9 @@ jobs:
           JWT_SECRET: ci-test-secret
           JWT_REFRESH_SECRET: ci-test-refresh
 
-      # Check server boots without crashing (give it 3s then kill)
+      # Check server boots without crashing
       - name: Validate server startup
-        run: |
-          timeout 3 node server.js || true
-          echo "Server startup OK"
+        run: node -e "require('./server.js')" &
         env:
           PORT: 4000
           JWT_SECRET: ci-test-secret
