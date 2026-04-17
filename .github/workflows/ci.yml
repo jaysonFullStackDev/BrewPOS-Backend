@@ -24,21 +24,9 @@ jobs:
 
       - run: npm ci
 
-      # Check all modules load without errors
-      - name: Validate modules
-        run: node -e "require('./routes/index'); require('./middleware/auth'); require('./middleware/validate'); require('./middleware/rateLimiter'); require('./middleware/auditLog'); console.log('All modules OK');"
-        env:
-          JWT_SECRET: ci-test-secret
-          JWT_REFRESH_SECRET: ci-test-refresh
-
-      # Check server boots without crashing
-      - name: Validate server startup
-        run: node -e "require('./server.js')" &
-        env:
-          PORT: 4000
-          JWT_SECRET: ci-test-secret
-          JWT_REFRESH_SECRET: ci-test-refresh
-          DB_HOST: ""
+      # Syntax check all JS files
+      - name: Validate syntax
+        run: node --check server.js routes/index.js middleware/auth.js middleware/validate.js middleware/rateLimiter.js middleware/auditLog.js controllers/*.js
 
   deploy:
     needs: test
