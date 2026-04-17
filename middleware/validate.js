@@ -73,6 +73,7 @@ const processSaleRules = [
   body('items.*.product_id').custom(isUUIDLike).withMessage('Invalid product ID'),
   body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
   body('payment_method').isIn(['cash', 'card', 'ewallet', 'gcash', 'maya', 'gotyme', 'bank_transfer']).withMessage('Invalid payment method'),
+  body('order_type').optional().isIn(['dine_in', 'take_out']).withMessage('Invalid order type'),
   body('discount').optional().isFloat({ min: 0 }).withMessage('Discount must be non-negative'),
   body('amount_tendered').optional().isFloat({ min: 0 }).withMessage('Amount tendered must be non-negative'),
   body('notes').optional().trim().isLength({ max: 500 }),

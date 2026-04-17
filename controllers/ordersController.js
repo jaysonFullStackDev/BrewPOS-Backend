@@ -6,7 +6,7 @@ const pool = require('../db/pool');
 const getActiveOrders = async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT s.id, s.sale_number, s.order_status, s.created_at, s.notes, u.name AS cashier_name,
+      SELECT s.id, s.sale_number, s.order_status, s.order_type, s.created_at, s.notes, u.name AS cashier_name,
              json_agg(json_build_object('product_name', si.product_name, 'quantity', si.quantity) ORDER BY si.product_name) AS items
       FROM sales s LEFT JOIN users u ON u.id = s.cashier_id JOIN sale_items si ON si.sale_id = s.id
       WHERE s.tenant_id = $1 AND s.order_status IN ('pending', 'preparing', 'ready')
