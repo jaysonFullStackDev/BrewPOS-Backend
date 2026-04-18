@@ -19,26 +19,15 @@ const auditLog = (action, entity) => (req, res, next) => {
       const user = req.user || {};
 
       // Build details based on action type
-      let details = {};
-      if (action === 'login') {
-        details = { email: req.body?.email };
-      } else if (action === 'create_sale') {
-        details = { total: body?.total_amount, items: body?.items?.length, payment: body?.payment_method };
-      } else if (action === 'update_order_status') {
-        details = { status: req.body?.status };
-      } else if (action === 'create_expense') {
-        details = { category: body?.category, amount: body?.amount };
-      } else if (action === 'stock_movement') {
-        details = { type: req.body?.movement_type, qty: req.body?.quantity_change };
-      } else if (action === 'delete_product') {
-        details = { product_id: req.params?.id };
-      } else if (action === 'create_user') {
-        details = { email: body?.email, role: body?.role };
-      } else if (action === 'change_password') {
-        details = {};
-      } else {
-        details = { name: body?.name || req.body?.name };
-      }
+      const details = action === 'login' ? { email: req.body?.email }
+        : action === 'create_sale' ? { total: body?.total_amount, items: body?.items?.length, payment: body?.payment_method }
+        : action === 'update_order_status' ? { status: req.body?.status }
+        : action === 'create_expense' ? { category: body?.category, amount: body?.amount }
+        : action === 'stock_movement' ? { type: req.body?.movement_type, qty: req.body?.quantity_change }
+        : action === 'delete_product' ? { product_id: req.params?.id }
+        : action === 'create_user' ? { email: body?.email, role: body?.role }
+        : action === 'change_password' ? {}
+        : { name: body?.name || req.body?.name };
 
       // Fire and forget — don't block the response
       const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || null;
