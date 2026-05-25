@@ -170,9 +170,12 @@ const googleAuth = async (req, res) => {
 // ── PUT /api/auth/tenant-setup (admin only) ───────────────
 const tenantSetup = async (req, res) => {
   try {
-    const { company_name, address, phone, payment_config } = req.body;
+    const { owner_name, owner_phone, company_name, address, phone, payment_config } = req.body;
     if (!company_name) {
       return res.status(400).json({ error: 'Company name is required' });
+    }
+    if (!owner_name || !owner_name.trim()) {
+      return res.status(400).json({ error: 'Your name is required' });
     }
 
     // Validate payment_config structure
@@ -191,14 +194,32 @@ const tenantSetup = async (req, res) => {
       }
     }
 
-    const result = await pool.query(
-      `UPDATE tenants
-       SET company_name = $1, address = $2, phone = $3, payment_config = $4, is_setup_done = TRUE
-       WHERE id = $5 RETURNING *`,
-      [company_name, address || null, phone || null, JSON.stringify(sanitized), req.tenant_id]
-    );
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    res.json(result.rows[0]);
+      // Update owner's profile
+      await client.query(
+        `UPDATE users SET name = $1, phone = $2 WHERE id = $3`,
+        [owner_name.trim(), owner_phone || null, req.user.id]
+      );
+
+      // Update tenant info
+      const result = await client.query(
+        `UPDATE tenants
+         SET company_name = $1, address = $2, phone = $3, payment_config = $4, is_setup_done = TRUE
+         WHERE id = $5 RETURNING *`,
+        [company_name, address || null, phone || null, JSON.stringify(sanitized), req.tenant_id]
+      );
+
+      await client.query('COMMIT');
+      res.json(result.rows[0]);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     console.error('Tenant setup error:', err);
     res.status(500).json({ error: 'Server error' });
